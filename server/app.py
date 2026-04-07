@@ -400,11 +400,15 @@ async def health_check():
 # RUN SERVER
 # ============================================================================
 
-if __name__ == "__main__":
+def main():
+    """Main entry point for the server"""
     uvicorn.run(
-        "app:app",
+        "server.app:app",
         host="0.0.0.0",
         port=7860,
         reload=True,
         log_level="info"
     )
+
+if __name__ == "__main__":
+    main()
