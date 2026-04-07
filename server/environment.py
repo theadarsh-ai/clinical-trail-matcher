@@ -192,7 +192,7 @@ class ClinicalTrialMatcherEnv:
                     "action_type": "rank_trials"
                 }
             ],
-            "action_schema": CTMatchAction.schema()
+            "action_schema": CTMatchAction.model_json_schema()
         }
 
 

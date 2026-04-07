@@ -72,14 +72,15 @@ class CTMatchAction(BaseModel):
         description="Trial IDs (unordered for list_eligible, ranked for rank_trials)"
     )
     
-    class Config:
-        schema_extra = {
+    model_config = {
+        "json_schema_extra": {
             "example": {
                 "action_type": "list_eligible",
                 "task": "easy",
                 "proposed_trial_ids": ["trial_001", "trial_003"]
             }
         }
+    }
 
 
 # ============================================================================
@@ -104,8 +105,8 @@ class CTMatchObservation(BaseModel):
     # Ground truth (only provided after step, in info)
     info: Dict[str, Any] = Field(default_factory=dict)
     
-    class Config:
-        schema_extra = {
+    model_config = {
+        "json_schema_extra": {
             "example": {
                 "patient": {
                     "id": "patient_001",
@@ -122,6 +123,7 @@ class CTMatchObservation(BaseModel):
                 "info": {}
             }
         }
+    }
 
 
 # ============================================================================

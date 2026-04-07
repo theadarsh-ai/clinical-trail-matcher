@@ -31,10 +31,28 @@ if os.path.exists(static_dir):
     app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 # Redirect root to our index.html dashboard
-@app.get("/", include_in_schema=False)
+# Redirect /dashboard to index.html dashboard
+@app.get("/dashboard", include_in_schema=False)
 async def get_dashboard():
     from fastapi.responses import FileResponse
     return FileResponse(os.path.join(static_dir, "index.html"))
+
+# Root endpoint provides programmatic metadata (consolidated)
+@app.get("/")
+async def root():
+    """Root endpoint with API information for automated scanners"""
+    return {
+        "name": "Clinical Trial Matcher Environment",
+        "description": "OpenEnv environment for matching patients to clinical trials",
+        "version": "1.0.0",
+        "endpoints": {
+            "core": ["/reset", "/step", "/state"],
+            "hackathon": ["/baseline", "/grader", "/tasks"],
+            "info": ["/health", "/docs", "/dashboard"]
+        },
+        "tasks": ["easy", "medium", "hard"],
+        "github": "https://github.com/theadarsh-ai/clinical-trail-matcher"
+    }
 
 # CORS middleware
 app.add_middleware(
@@ -84,7 +102,7 @@ class GraderResponse(BaseModel):
 # ============================================================================
 
 @app.post("/reset", response_model=CTMatchObservation)
-async def reset(request: ResetRequest):
+async def reset(request: ResetRequest = ResetRequest()):
     """
     Reset the environment and start a new episode
     
@@ -375,21 +393,7 @@ async def health_check():
     }
 
 
-@app.get("/")
-async def root():
-    """Root endpoint with API information"""
-    return {
-        "name": "Clinical Trial Matcher Environment",
-        "description": "OpenEnv environment for matching patients to clinical trials",
-        "version": "1.0.0",
-        "endpoints": {
-            "core": ["/reset", "/step", "/state"],
-            "hackathon": ["/baseline", "/grader", "/tasks"],
-            "info": ["/health", "/docs"]
-        },
-        "tasks": ["easy", "medium", "hard"],
-        "github": "https://github.com/yourusername/clinical-trial-matcher"
-    }
+
 
 
 # ============================================================================
