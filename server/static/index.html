@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clinical Trial Matcher</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Inter:wght@400;600;700&display=swap"
+        rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-color: #0d1117;
+            --panel-bg: #161b22;
+            --border-color: #30363d;
+            --text-main: #c9d1d9;
+            --text-muted: #8b949e;
+            --accent: #58a6ff;
+            --success: #3fb950;
+            --warning: #d29922;
+            --danger: #f85149;
+            --agent-color: #a371f7;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-color);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        header {
+            padding: 1rem 2rem;
+            background: var(--panel-bg);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-weight: 700;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .logo span {
+            color: var(--accent);
+            font-family: 'Fira Code', monospace;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: 350px 1fr 350px;
+            gap: 1px;
+            background: var(--border-color);
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .panel {
+            background: var(--bg-color);
+            padding: 1.5rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .panel-header {
+            font-family: 'Fira Code', monospace;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-bottom: 0.5rem;
+            letter-spacing: 0.05em;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.5rem;
+        }
+
+        /* RL Loop Visualizer */
+        .rl-loop {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            align-items: center;
+            padding: 2rem 0;
+            flex: 1;
+            justify-content: center;
+        }
+
+        .node {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            padding: 1.5rem;
+            border-radius: 12px;
+            width: 80%;
+            text-align: center;
+            position: relative;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .node.env {
+            border-top: 4px solid var(--success);
+        }
+
+        .node.agent {
+            border-top: 4px solid var(--agent-color);
+        }
+
+        .node h3 {
+            font-family: 'Fira Code', monospace;
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .arrow {
+            width: 2px;
+            height: 40px;
+            background: var(--border-color);
+            position: relative;
+        }
+
+        .arrow::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: -4px;
+            border-width: 5px 5px 0;
+            border-style: solid;
+            border-color: var(--border-color) transparent transparent;
+        }
+
+        .arrow.up::after {
+            top: -5px;
+            bottom: auto;
+            border-width: 0 5px 5px;
+            border-color: transparent transparent var(--border-color);
+        }
+
+        .arrow-label {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-family: 'Fira Code', monospace;
+            font-size: 0.75rem;
+            color: var(--accent);
+            white-space: nowrap;
+            background: var(--bg-color);
+            padding: 2px 6px;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+        }
+
+        /* Console / Logs */
+        .console {
+            background: #010409;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 1rem;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.8rem;
+            height: 250px;
+            overflow-y: auto;
+        }
+
+        .log-entry {
+            margin-bottom: 0.4rem;
+            line-height: 1.4;
+        }
+
+        .log-info {
+            color: var(--text-muted);
+        }
+
+        .log-reward {
+            color: var(--warning);
+            font-weight: bold;
+        }
+
+        .log-success {
+            color: var(--success);
+        }
+
+        .log-error {
+            color: var(--danger);
+        }
+
+        /* Controls */
+        .controls {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn {
+            padding: 0.6rem 1rem;
+            border: 1px solid var(--border-color);
+            background: var(--panel-bg);
+            color: var(--text-main);
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: 0.2s;
+            flex: 1;
+            text-align: center;
+        }
+
+        .btn:hover:not(:disabled) {
+            border-color: var(--text-muted);
+        }
+
+        .btn-primary {
+            background: var(--success);
+            border-color: var(--success);
+            color: #fff;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: #2ea043;
+            border-color: #2ea043;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Data display */
+        .data-block {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 6px;
+            padding: 0.8rem;
+            margin-top: 0.5rem;
+        }
+
+        .data-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-bottom: 0.3rem;
+            font-weight: 600;
+        }
+
+        .data-value {
+            font-family: 'Fira Code', monospace;
+            font-size: 0.9rem;
+            word-break: break-all;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            background: rgba(88, 166, 255, 0.1);
+            color: var(--accent);
+            border: 1px solid rgba(88, 166, 255, 0.2);
+        }
+
+        /* Graph container */
+        .graph-container {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            flex: 1;
+            min-height: 250px;
+            position: relative;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <div class="logo">
+            <span></span> Clinical Trial Matcher
+
+        </div>
+        <div style="display: flex; gap: 1rem; align-items: center;">
+            <select id="taskSelect" class="btn" style="width: auto;">
+                <option value="easy">Task: EASY (F1)</option>
+                <option value="medium" selected>Task: MEDIUM (F1)</option>
+                <option value="hard">Task: HARD (NDCG)</option>
+            </select>
+            <div class="badge" id="envStatus">Status: Live</div>
+        </div>
+    </header>
+
+    <div class="dashboard">
+        <!-- LEFT PANEL: STATE -->
+        <div class="panel">
+            <div class="panel-header">1. Environment State <span id="epCounter" style="float:right">Ep: 0</span></div>
+
+            <div class="controls" style="margin-bottom: 1rem;">
+                <button class="btn btn-primary" id="btnTrain" onclick="startTraining()">▶ Run Training (50 Eps)</button>
+                <button class="btn" id="btnStep" onclick="runSingleStep()">⏭ Single Step</button>
+            </div>
+
+            <div class="data-block">
+                <div class="data-label">Patient Profile (Observation)</div>
+                <div id="statePatient" class="data-value" style="color: var(--text-muted); font-size: 0.8rem;">Ready to
+                    initialize...</div>
+            </div>
+
+            <div class="data-block" style="flex:1; display:flex; flex-direction:column; overflow:hidden;">
+                <div class="data-label">Available Trials (<span id="stateTrialCount">0</span>)</div>
+                <div id="stateTrials" class="data-value"
+                    style="color: var(--text-muted); font-size: 0.75rem; overflow-y:auto; flex:1;"></div>
+            </div>
+        </div>
+
+        <!-- CENTER PANEL: RL VISUALIZATION -->
+        <div class="panel">
+            <div class="panel-header">2. RL Loop Visualization</div>
+
+            <div class="rl-loop">
+                <div class="node env" id="nodeEnv">
+                    <h3 style="color: var(--success)">Environment</h3>
+                    <p style="font-size: 0.85rem; color: var(--text-muted)">Generates dynamic patient profiles and
+                        computes ground truth eligibility.</p>
+                </div>
+
+                <div class="arrow up">
+                    <div class="arrow-label" id="lblReward" style="right: 15px; left: auto;">↑ REWARD</div>
+                </div>
+
+                <div class="node agent" id="nodeAgent">
+                    <h3 style="color: var(--agent-color)">RL Agent</h3>
+                    <p style="font-size: 0.85rem; color: var(--text-muted)">Current Policy: <span id="currentPolicy"
+                            style="font-weight:bold; color:#fff">Untrained</span></p>
+                </div>
+
+                <div class="arrow">
+                    <div class="arrow-label" id="lblAction">↓ ACTION</div>
+                </div>
+            </div>
+
+            <div class="graph-container">
+                <div class="data-label" style="position: absolute; top: 10px; left: 15px;">Learning Curve (Reward)</div>
+                <canvas id="rewardChart"></canvas>
+            </div>
+        </div>
+
+        <!-- RIGHT PANEL: ACTION & LOGS -->
+        <div class="panel">
+            <div class="panel-header">3. Policy Execution & Logs</div>
+
+            <div class="data-block">
+                <div class="data-label">Agent Action</div>
+                <div id="agentAction" class="data-value"
+                    style="font-size: 0.8rem; color: var(--accent); min-height: 40px;">Waiting...</div>
+            </div>
+
+            <div class="data-block" style="border: 1px solid var(--warning); background: rgba(210, 153, 34, 0.05);">
+                <div class="data-label" style="color: var(--warning)">Environment Reward</div>
+                <div style="display: flex; justify-content: space-between; align-items: baseline;">
+                    <div id="envReward" class="data-value" style="font-size: 2rem; font-weight: bold; color: #fff;">
+                        0.000</div>
+                    <div id="envMetric"
+                        style="font-size: 0.8rem; color: var(--text-muted); font-family:'Fira Code', monospace;">N/A
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel-header" style="margin-top: 1rem;">Execution Log</div>
+            <div class="console" id="consoleLog">
+                <div class="log-entry log-info">> OpenEnv Engine Ready.</div>
+                <div class="log-entry log-info">> Awaiting training initialization...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State
+        let isTraining = false;
+        let currentEp = 0;
+        let trainingInterval = null;
+        let chart;
+        let rewardHistory = [];
+        let episodeLabels = [];
+
+        // DOM Elements
+        const logC = document.getElementById('consoleLog');
+        const stPat = document.getElementById('statePatient');
+        const stTri = document.getElementById('stateTrials');
+        const stTrCnt = document.getElementById('stateTrialCount');
+        const agAct = document.getElementById('agentAction');
+        const enRev = document.getElementById('envReward');
+        const enMet = document.getElementById('envMetric');
+        const curPol = document.getElementById('currentPolicy');
+
+        // Init Chart
+        function initChart() {
+            const ctx = document.getElementById('rewardChart').getContext('2d');
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: episodeLabels,
+                    datasets: [{
+                        label: 'Reward',
+                        data: rewardHistory,
+                        borderColor: '#58a6ff',
+                        backgroundColor: 'rgba(88, 166, 255, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { min: 0, max: 1.05, grid: { color: '#30363d' }, ticks: { color: '#8b949e' } },
+                        x: { grid: { display: false }, ticks: { color: '#8b949e', maxTicksLimit: 10 } }
+                    },
+                    plugins: { legend: { display: false } },
+                    animation: { duration: 0 }
+                }
+            });
+        }
+
+        initChart();
+
+        function log(msg, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `log-entry log-${type}`;
+            div.innerText = `> ${msg}`;
+            logC.appendChild(div);
+            logC.scrollTop = logC.scrollHeight;
+        }
+
+        async function runEpisode(simulateStrategy = true) {
+            currentEp++;
+            document.getElementById('epCounter').innerText = `Ep: ${currentEp}`;
+            const task = document.getElementById('taskSelect').value;
+            const isHard = task === 'hard';
+
+            // 1. Reset Env to get state
+            log(`[EP ${currentEp}] Resetting environment...`, 'info');
+            // Flash UI nodes to simulate data flow
+            document.getElementById('nodeEnv').style.boxShadow = '0 0 20px rgba(63, 185, 80, 0.5)';
+            setTimeout(() => document.getElementById('nodeEnv').style.boxShadow = 'none', 300);
+
+            let res = await fetch('/reset', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ task: task })
+            });
+            let obs = await res.json();
+
+            // Render State
+            stPat.innerHTML = `Condition: <span style="color:#fff">${obs.patient.condition}</span><br>
+                               Age/Gender: ${obs.patient.age}y ${obs.patient.gender}<br>
+                               City: ${obs.patient.city}<br>
+                               Biomarkers: ${JSON.stringify(obs.patient.biomarkers)}`;
+            stTrCnt.innerText = obs.trials.length;
+            stTri.innerHTML = obs.trials.slice(0, 3).map(t => `- [${t.id.slice(-6)}] ${t.title.slice(0, 30)}...`).join('<br>') + '<br>...';
+
+            document.getElementById('lblAction').innerText = `↓ STATE (obs)`;
+
+            // 2. Agent Computes Action
+            document.getElementById('nodeAgent').style.boxShadow = '0 0 20px rgba(163, 113, 247, 0.5)';
+            setTimeout(() => document.getElementById('nodeAgent').style.boxShadow = 'none', 300);
+
+            // 2. Agent Computes Action
+            document.getElementById('nodeAgent').style.boxShadow = '0 0 20px rgba(163, 113, 247, 0.5)';
+            setTimeout(() => document.getElementById('nodeAgent').style.boxShadow = 'none', 300);
+
+            // In Single Step mode, we evaluate the Target Policy (Optimal Match)
+            curPol.innerText = "Evaluating Target Policy";
+            curPol.style.color = '#58a6ff';
+            
+            let gtRes = await fetch('/match_demo', { method: 'POST' });
+            let gtData = await gtRes.json();
+            let proposedIds = gtData.ground_truth_ids;
+            let strategyName = "Optimal Match Policy";
+
+            agAct.innerHTML = `Proposed ${proposedIds.length} trials.<br>Strategy: <i>${strategyName}</i>`;
+
+            // 3. Environment Computes Reward
+            document.getElementById('lblReward').innerText = `↑ ACTION`;
+            log(`Agent action submitted. Evaluating...`, 'info');
+
+            let stepRes = await fetch('/step', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: {
+                        action_type: isHard ? 'rank_trials' : 'list_eligible',
+                        task: task,
+                        proposed_trial_ids: proposedIds
+                    }
+                })
+            });
+            let stepObs = await stepRes.json();
+
+            // Render Reward
+            let r = stepObs.reward;
+            enRev.innerText = r.toFixed(4);
+            enMet.innerText = stepObs.info.metric_name.toUpperCase();
+
+            if (r >= 0.8) enRev.style.color = 'var(--success)';
+            else if (r >= 0.4) enRev.style.color = 'var(--warning)';
+            else enRev.style.color = 'var(--danger)';
+
+            log(`Reward computed: ${r.toFixed(4)} (${stepObs.info.metric_name})`, r >= 0.7 ? 'success' : 'reward');
+
+            // Update Chart
+            episodeLabels.push(currentEp);
+            rewardHistory.push(r);
+            if (episodeLabels.length > 50) {
+                episodeLabels.shift();
+                rewardHistory.shift();
+            }
+            chart.update();
+        }
+
+        async function startTraining() {
+            if (isTraining) return;
+            isTraining = true;
+            currentEp = 0;
+            episodeLabels.length = 0;
+            rewardHistory.length = 0;
+            chart.update();
+            logC.innerHTML = '';
+
+            document.getElementById('btnTrain').disabled = true;
+            document.getElementById('btnStep').disabled = true;
+            document.getElementById('taskSelect').disabled = true;
+
+            const task = document.getElementById('taskSelect').value;
+            log(`Starting Real PyTorch Training Simulation (up to 300 Epochs, backend REINFORCE)...`);
+            log(`PyTorch loading tensors and gradients...`, 'info');
+
+            try {
+                let res = await fetch('/train_real', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ task: task, episodes: 300 })
+                });
+                let json = await res.json();
+
+                if (json.detail) {
+                    log('Error from PyTorch: ' + json.detail, 'error');
+                } else {
+                    let metrics = json.data;
+
+                    for (let metric of metrics) {
+                        currentEp = metric.episode;
+                        document.getElementById('epCounter').innerText = `Ep: ${currentEp}`;
+
+                        // Fake visual updates to make it look "live" since backend executed it in a batch
+                        document.getElementById('nodeEnv').style.boxShadow = '0 0 20px rgba(63, 185, 80, 0.5)';
+                        document.getElementById('nodeAgent').style.boxShadow = '0 0 20px rgba(163, 113, 247, 0.5)';
+                        curPol.innerText = `Updating Weights (Loss: ${metric.loss.toFixed(3)})`;
+
+                        // Update UI variables dynamically per epoch
+                        const p = metric.patient_full;
+                        stPat.innerHTML = `Condition: <span style="color:#fff">${p.condition.replace(/_/g, ' ')}</span><br>
+                                           Age/Gender: ${p.age}y ${p.gender}<br>
+                                           City: ${p.city}<br>
+                                           Biomarkers: ${JSON.stringify(p.biomarkers)}`;
+                        stTrCnt.innerText = metric.trials_total;
+                        stTri.innerHTML = metric.trials_summary.join('<br>') + '<br>...';
+
+                        // Calculate action string
+                        agAct.innerHTML = `Proposed ${metric.proposed_count} trials.<br>Strategy: <i>PyTorch REINFORCE (NN)</i>`;
+
+                        enRev.innerText = metric.reward.toFixed(4);
+                        if (metric.reward >= 0.8) enRev.style.color = 'var(--success)';
+                        else if (metric.reward >= 0.4) enRev.style.color = 'var(--warning)';
+                        else enRev.style.color = 'var(--danger)';
+
+                        episodeLabels.push(currentEp);
+                        rewardHistory.push(metric.reward);
+                        chart.update();
+
+                        log(`[EP ${currentEp}] Pat: ${metric.patient_condition} | Loss: ${metric.loss.toFixed(3)} | Reward: ${metric.reward.toFixed(4)}`, metric.reward > 0.7 ? 'success' : 'info');
+
+                        await new Promise(r => setTimeout(r, 60)); // Small delay for visual playback
+
+                        document.getElementById('nodeEnv').style.boxShadow = 'none';
+                        document.getElementById('nodeAgent').style.boxShadow = 'none';
+                    }
+                    log('PyTorch Training Complete. Tensor Graph Plotted.', 'success');
+                    curPol.innerText = "Model Saved";
+                }
+            } catch (e) {
+                log('Failed to execute PyTorch: ' + e, 'error');
+            }
+
+            isTraining = false;
+            document.getElementById('btnTrain').disabled = false;
+            document.getElementById('btnStep').disabled = false;
+            document.getElementById('taskSelect').disabled = false;
+            document.getElementById('btnTrain').innerText = "▶ Run PyTorch Target Again";
+        }
+
+        async function runSingleStep() {
+            if (isTraining) return;
+            document.getElementById('btnStep').disabled = true;
+            await runEpisode(false);
+            document.getElementById('btnStep').disabled = false;
+        }
+
+    </script>
+</body>
+
+</html>

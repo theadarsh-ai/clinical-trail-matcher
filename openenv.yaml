@@ -1,0 +1,79 @@
+# OpenEnv Configuration for Clinical Trial Matcher
+name: clinical_trial_matcher
+version: "1.0.0"
+description: "Environment for matching patients to clinical trials using AI agents"
+
+# Environment metadata
+metadata:
+  author: "Your Name"
+  license: "MIT"
+  tags:
+    - healthcare
+    - clinical-trials
+    - patient-matching
+    - ranking
+    - classification
+  difficulty: medium
+  real_world: true
+
+# Tasks
+tasks:
+  - name: easy
+    description: "Basic eligibility matching (age, gender, condition, city)"
+    metric: f1_score
+    difficulty: easy
+  
+  - name: medium
+    description: "Medical criteria matching (biomarkers, treatments, comorbidities)"
+    metric: f1_score
+    difficulty: medium
+  
+  - name: hard
+    description: "Optimal ranking with logistics and preferences"
+    metric: ndcg@10
+    difficulty: hard
+
+# API endpoints
+endpoints:
+  reset: /reset
+  step: /step
+  state: /state
+  baseline: /baseline
+  grader: /grader
+  tasks: /tasks
+  health: /health
+
+# Container configuration
+container:
+  port: 7860
+  health_check_path: /health
+  
+# Grading configuration
+grading:
+  easy:
+    metric: f1_score
+    target: 1.0
+    passing: 0.8
+  
+  medium:
+    metric: f1_score
+    target: 1.0
+    passing: 0.7
+  
+  hard:
+    metric: ndcg@10
+    target: 1.0
+    passing: 0.6
+
+# Environment specifications
+specs:
+  action_space: 
+    type: discrete
+    description: "List or rank clinical trial IDs"
+  
+  observation_space:
+    type: structured
+    description: "Patient profile and trial criteria"
+  
+  episode_length: 1
+  reward_range: [0.0, 1.0]
