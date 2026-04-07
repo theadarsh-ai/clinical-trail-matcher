@@ -1,3 +1,12 @@
+---
+title: Clinical Trial Matcher
+emoji: 🏥
+colorFrom: blue
+colorTo: green
+sdk: docker
+pinned: false
+---
+
 # 🧬 Clinical Trial Matcher: Reinforcement Learning for Healthcare
 
 [![PyTorch 2.2](https://img.shields.io/badge/PyTorch-2.2-EE4C2C.svg?style=flat-square&logo=pytorch)](https://pytorch.org/)
