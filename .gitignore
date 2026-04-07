@@ -4,7 +4,9 @@ __pycache__/
 .ipynb_checkpoints/
 .vscode/
 .idea/
-*.txt
 *.log
 .DS_Store
 *.pt
+# Ignore all text files EXCEPT requirements.txt
+*.txt
+!requirements.txt
