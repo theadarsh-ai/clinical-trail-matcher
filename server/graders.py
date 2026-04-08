@@ -262,8 +262,11 @@ def grade_action(
         ground_truth = get_ground_truth_eligible(patient, trials, "easy")
         f1 = calculate_f1_score(proposed_trial_ids, ground_truth)
         
+        # Clip reward to be strictly in (0, 1)
+        reward = max(0.001, min(0.999, f1))
+        
         return {
-            "reward": f1,
+            "reward": reward,
             "ground_truth": ground_truth,
             "metric_name": "f1_score",
             "details": {
@@ -279,8 +282,11 @@ def grade_action(
         ground_truth = get_ground_truth_eligible(patient, trials, "medium")
         f1 = calculate_f1_score(proposed_trial_ids, ground_truth)
         
+        # Clip reward to be strictly in (0, 1)
+        reward = max(0.001, min(0.999, f1))
+        
         return {
-            "reward": f1,
+            "reward": reward,
             "ground_truth": ground_truth,
             "metric_name": "f1_score",
             "details": {
@@ -296,8 +302,11 @@ def grade_action(
         ideal_ranking = get_ground_truth_ranking(patient, trials)
         ndcg = calculate_ndcg(proposed_trial_ids, ideal_ranking, k=10)
         
+        # Clip reward to be strictly in (0, 1)
+        reward = max(0.001, min(0.999, ndcg))
+        
         return {
-            "reward": ndcg,
+            "reward": reward,
             "ground_truth": ideal_ranking,
             "metric_name": "ndcg@10",
             "details": {
