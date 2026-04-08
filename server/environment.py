@@ -174,6 +174,7 @@ class ClinicalTrialMatcherEnv:
         return {
             "tasks": [
                 {
+                    "id": "easy",
                     "task_id": "easy",
                     "name": "easy",
                     "description": "Basic eligibility matching (age, gender, condition, city)",
@@ -181,6 +182,7 @@ class ClinicalTrialMatcherEnv:
                     "action_type": "list_eligible"
                 },
                 {
+                    "id": "medium",
                     "task_id": "medium",
                     "name": "medium",
                     "description": "Medical criteria matching (biomarkers, treatments, comorbidities)",
@@ -188,6 +190,7 @@ class ClinicalTrialMatcherEnv:
                     "action_type": "list_eligible"
                 },
                 {
+                    "id": "hard",
                     "task_id": "hard",
                     "name": "hard",
                     "description": "Optimal ranking (phase, distance, slots, preferences)",

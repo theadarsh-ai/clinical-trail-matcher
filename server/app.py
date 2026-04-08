@@ -92,7 +92,7 @@ class GraderRequest(BaseModel):
 
 
 class GraderResponse(BaseModel):
-    score: float
+    reward: float
     metric_name: str
     details: Dict[str, Any]
 
@@ -239,7 +239,7 @@ async def run_grader(request: GraderRequest):
         result = grade_action(patient, trials, task, action.proposed_trial_ids)
         
         return GraderResponse(
-            score=result["reward"],
+            reward=result["reward"],
             metric_name=result["metric_name"],
             details=result["details"]
         )
