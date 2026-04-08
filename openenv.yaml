@@ -18,17 +18,20 @@ metadata:
 
 # Tasks
 tasks:
-  - name: easy
+  - task_id: easy
+    name: easy
     description: "Basic eligibility matching (age, gender, condition, city)"
     metric: f1_score
     difficulty: easy
   
-  - name: medium
+  - task_id: medium
+    name: medium
     description: "Medical criteria matching (biomarkers, treatments, comorbidities)"
     metric: f1_score
     difficulty: medium
   
-  - name: hard
+  - task_id: hard
+    name: hard
     description: "Optimal ranking with logistics and preferences"
     metric: ndcg@10
     difficulty: hard

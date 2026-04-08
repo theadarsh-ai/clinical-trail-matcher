@@ -222,7 +222,7 @@ async def run_grader(request: GraderRequest):
         from server.graders import grade_action
         
         # Extract data
-        task = request.episode_data.get("task")
+        task = request.episode_data.get("task") or request.episode_data.get("task_id")
         action_data = request.episode_data.get("action")
         patient_data = request.episode_data.get("patient")
         trials_data = request.episode_data.get("trials")
