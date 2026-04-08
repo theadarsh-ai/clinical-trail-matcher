@@ -344,95 +344,81 @@ def run_inference_http():
 # ENTRY POINT
 # ============================================================================
 
+async def run_single_task(task: str, client, env):
+    """Run inference for a single task and emit required logs."""
+    rewards: List[float] = []
+    steps_taken = 0
+    score = 0.0
+    success = False
+
+    log_start(task=task, env=BENCHMARK, model=MODEL_NAME)
+
+    try:
+        obs = env.reset(task=task)
+
+        patient_dict = obs.patient.model_dump() if hasattr(obs.patient, 'model_dump') else obs.patient.dict()
+        trials_list = [
+            (t.model_dump() if hasattr(t, 'model_dump') else t.dict())
+            for t in obs.trials
+        ]
+
+        predicted_trial_ids = get_model_prediction(client, patient_dict, trials_list, task)
+
+        action_type = "list_eligible" if task in ["easy", "medium"] else "rank_trials"
+        action = CTMatchAction(
+            action_type=action_type,
+            task=task,
+            proposed_trial_ids=predicted_trial_ids
+        )
+
+        obs = env.step(action)
+        reward = obs.reward
+        done = obs.done
+
+        rewards.append(reward)
+        steps_taken = 1
+
+        action_str = str(predicted_trial_ids)
+        if len(action_str) > 100:
+            action_str = action_str[:97] + "..."
+
+        log_step(step=1, action=action_str, reward=reward, done=done, error=None)
+
+        score = reward
+        success = score >= SUCCESS_SCORE_THRESHOLD
+
+    except Exception as e:
+        print(f"[DEBUG] Inference error for task={task}: {e}", flush=True)
+        import traceback
+        traceback.print_exc()
+
+    finally:
+        log_end(success=success, steps=steps_taken, score=score, rewards=rewards)
+
+    return score
+
+
 async def main():
-    """Main entry point"""
+    """Main entry point - runs ALL 3 tasks so validator sees every grader."""
     if not API_KEY:
         print("[ERROR] HF_TOKEN environment variable not set!", flush=True)
         sys.exit(1)
-    
-    if NUM_EPISODES == 1:
-        # Standard single-episode run (hackathon format)
-        await run_inference_local()
-    else:
-        # Multi-patient run: shows all patients being processed
-        from server.environment import ClinicalTrialMatcherEnv
-        client = OpenAI(base_url=API_BASE_URL, api_key=API_KEY)
-        env = ClinicalTrialMatcherEnv()
-        
-        all_results = []
-        print(f"\nRunning {NUM_EPISODES} patients through the pipeline (Task: {TASK_NAME})")
-        print("=" * 70)
-        
-        for ep in range(1, NUM_EPISODES + 1):
-            print(f"\n>>> EPISODE {ep}/{NUM_EPISODES}", flush=True)
-            
-            rewards: List[float] = []
-            steps_taken = 0
-            score = 0.0
-            success = False
-            
-            log_start(task=TASK_NAME, env=BENCHMARK, model=MODEL_NAME)
-            
-            try:
-                obs = env.reset(task=TASK_NAME)  # Random seed = different patient each time
-                
-                patient_dict = obs.patient.model_dump() if hasattr(obs.patient, 'model_dump') else obs.patient.dict()
-                trials_list = [
-                    (t.model_dump() if hasattr(t, 'model_dump') else t.dict())
-                    for t in obs.trials
-                ]
-                
-                print(f"[PATIENT] {patient_dict['condition']} | {patient_dict['age']}y {patient_dict['gender']} | {patient_dict['city']}", flush=True)
-                print(f"[TRIALS]  {len(trials_list)} trials being evaluated by LLM...", flush=True)
-                
-                predicted_trial_ids = get_model_prediction(client, patient_dict, trials_list, TASK_NAME)
-                
-                action_type = "list_eligible" if TASK_NAME in ["easy", "medium"] else "rank_trials"
-                action = CTMatchAction(action_type=action_type, task=TASK_NAME, proposed_trial_ids=predicted_trial_ids)
-                
-                obs = env.step(action)
-                reward = obs.reward
-                done = obs.done
-                ground_truth = obs.info.get('ground_truth', [])
-                
-                rewards.append(reward)
-                steps_taken = 1
-                
-                print(f"[RESULT]  Ground Truth: {len(ground_truth)} eligible | LLM picked: {len(predicted_trial_ids)} | Score: {reward:.4f} ({'PASS' if reward >= SUCCESS_SCORE_THRESHOLD else 'FAIL'})", flush=True)
-                
-                action_str = str(predicted_trial_ids)
-                if len(action_str) > 100:
-                    action_str = action_str[:97] + "..."
-                log_step(step=1, action=action_str, reward=reward, done=done, error=None)
-                
-                score = reward
-                success = score >= SUCCESS_SCORE_THRESHOLD
-                all_results.append({"episode": ep, "condition": patient_dict['condition'], "score": score, "success": success})
-                
-            except Exception as e:
-                print(f"[DEBUG] Episode {ep} error: {e}", flush=True)
-                all_results.append({"episode": ep, "condition": "error", "score": 0.0, "success": False})
-            
-            finally:
-                log_end(success=success, steps=steps_taken, score=score, rewards=rewards)
-        
-        # Summary table
-        print("\n" + "=" * 70)
-        print(f"SUMMARY: {NUM_EPISODES} PATIENTS PROCESSED")
-        print("=" * 70)
-        print(f"{'Ep':>4} | {'Condition':>20} | {'Score':>8} | Result")
-        print("-" * 50)
-        total_pass = 0
-        for r in all_results:
-            status = "PASS" if r['success'] else "FAIL"
-            if r['success']:
-                total_pass += 1
-            print(f"  {r['episode']:>2} | {r['condition']:>20} | {r['score']:>8.4f} | {status}")
-        print("-" * 50)
-        avg = sum(r['score'] for r in all_results) / len(all_results)
-        print(f"  Average Score: {avg:.4f}  |  Passed: {total_pass}/{NUM_EPISODES}")
-        print("=" * 70)
+
+    from server.environment import ClinicalTrialMatcherEnv
+    client = OpenAI(base_url=API_BASE_URL, api_key=API_KEY)
+    env = ClinicalTrialMatcherEnv()
+
+    # Always run all 3 tasks so the validator counts 3 graded tasks
+    all_tasks = ["easy", "medium", "hard"]
+    scores = {}
+    for task in all_tasks:
+        scores[task] = await run_single_task(task, client, env)
+
+    # Final summary
+    avg = sum(scores.values()) / len(scores)
+    print(f"[SUMMARY] easy={scores['easy']:.3f} medium={scores['medium']:.3f} hard={scores['hard']:.3f} avg={avg:.3f}", flush=True)
 
 
 if __name__ == "__main__":
     asyncio.run(main())
+

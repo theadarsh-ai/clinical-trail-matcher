@@ -179,7 +179,9 @@ class ClinicalTrialMatcherEnv:
                     "name": "easy",
                     "description": "Basic eligibility matching (age, gender, condition, city)",
                     "metric": "f1_score",
-                    "action_type": "list_eligible"
+                    "action_type": "list_eligible",
+                    "has_grader": True,
+                    "grader": True
                 },
                 {
                     "id": "medium",
@@ -187,7 +189,9 @@ class ClinicalTrialMatcherEnv:
                     "name": "medium",
                     "description": "Medical criteria matching (biomarkers, treatments, comorbidities)",
                     "metric": "f1_score",
-                    "action_type": "list_eligible"
+                    "action_type": "list_eligible",
+                    "has_grader": True,
+                    "grader": True
                 },
                 {
                     "id": "hard",
@@ -195,7 +199,9 @@ class ClinicalTrialMatcherEnv:
                     "name": "hard",
                     "description": "Optimal ranking (phase, distance, slots, preferences)",
                     "metric": "ndcg@10",
-                    "action_type": "rank_trials"
+                    "action_type": "rank_trials",
+                    "has_grader": True,
+                    "grader": True
                 }
             ],
             "action_schema": CTMatchAction.model_json_schema()

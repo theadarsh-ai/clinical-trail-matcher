@@ -23,18 +23,24 @@ tasks:
     description: "Basic eligibility matching (age, gender, condition, city)"
     metric: f1_score
     difficulty: easy
+    has_grader: true
+    grader_enabled: true
   
   - task_id: medium
     name: medium
     description: "Medical criteria matching (biomarkers, treatments, comorbidities)"
     metric: f1_score
     difficulty: medium
+    has_grader: true
+    grader_enabled: true
   
   - task_id: hard
     name: hard
     description: "Optimal ranking with logistics and preferences"
     metric: ndcg@10
     difficulty: hard
+    has_grader: true
+    grader_enabled: true
 
 # API endpoints
 endpoints:

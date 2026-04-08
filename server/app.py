@@ -227,7 +227,7 @@ async def run_grader(request: GraderRequest):
         patient_data = request.episode_data.get("patient")
         trials_data = request.episode_data.get("trials")
         
-        if not all([task, action_data, patient_data, trials_data]):
+        if task is None or action_data is None or patient_data is None or trials_data is None:
             raise HTTPException(status_code=400, detail="Missing required fields")
         
         # Parse models
@@ -244,6 +244,8 @@ async def run_grader(request: GraderRequest):
             details=result["details"]
         )
     
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Grader failed: {str(e)}")
 

@@ -133,8 +133,10 @@ version = "1.0.0"
 source = { editable = "." }
 dependencies = [
     { name = "fastapi" },
+    { name = "openai" },
     { name = "openenv-core" },
     { name = "pydantic" },
+    { name = "python-dotenv" },
     { name = "python-multipart" },
     { name = "requests" },
     { name = "torch" },
@@ -144,8 +146,10 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "fastapi", specifier = "==0.109.0" },
+    { name = "openai" },
     { name = "openenv-core", specifier = ">=0.2.0" },
     { name = "pydantic", specifier = "==2.5.3" },
+    { name = "python-dotenv" },
     { name = "python-multipart", specifier = "==0.0.6" },
     { name = "requests", specifier = "==2.31.0" },
     { name = "torch", specifier = ">=2.0.0" },
