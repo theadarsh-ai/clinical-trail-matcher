@@ -32,15 +32,15 @@ if os.path.exists(static_dir):
 
 # Redirect root to our index.html dashboard
 # Redirect /dashboard to index.html dashboard
-@app.get("/dashboard", include_in_schema=False)
-async def get_dashboard():
+@app.get("/", include_in_schema=False)
+async def root():
     from fastapi.responses import FileResponse
     return FileResponse(os.path.join(static_dir, "index.html"))
 
-# Root endpoint provides programmatic metadata (consolidated)
-@app.get("/")
-async def root():
-    """Root endpoint with API information for automated scanners"""
+# Programmatic metadata
+@app.get("/info")
+async def get_info():
+    """Endpoint with API information for automated scanners"""
     return {
         "name": "Clinical Trial Matcher Environment",
         "description": "OpenEnv environment for matching patients to clinical trials",
@@ -48,7 +48,7 @@ async def root():
         "endpoints": {
             "core": ["/reset", "/step", "/state"],
             "hackathon": ["/baseline", "/grader", "/tasks"],
-            "info": ["/health", "/docs", "/dashboard"]
+            "info": ["/health", "/docs", "/info"]
         },
         "tasks": ["easy", "medium", "hard"],
         "github": "https://github.com/theadarsh-ai/clinical-trail-matcher"
