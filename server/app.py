@@ -5,13 +5,14 @@ Exposes OpenEnv-compatible endpoints
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional, Dict, Any
 import uvicorn
 
 from fastapi.staticfiles import StaticFiles
 from models import CTMatchAction, CTMatchObservation
 from server.environment import ClinicalTrialMatcherEnv
+from fastapi import Body
 
 import os
 
@@ -88,7 +89,9 @@ class BaselineResponse(BaseModel):
 
 
 class GraderRequest(BaseModel):
-    episode_data: Dict[str, Any]
+    episode_data: Dict[str, Any] = Field(default_factory=dict)
+    task: Optional[str] = None
+    task_id: Optional[str] = None
 
 
 class GraderResponse(BaseModel):
@@ -206,7 +209,7 @@ async def run_baseline():
 
 
 @app.post("/grader", response_model=GraderResponse)
-async def run_grader(request: GraderRequest):
+async def run_grader(request: GraderRequest = Body(default=GraderRequest())):
     """
     Grade an episode based on stored episode data
     Required for hackathon validation
@@ -222,12 +225,15 @@ async def run_grader(request: GraderRequest):
         from server.graders import grade_action
         
         # Extract data
-        task = request.episode_data.get("task") or request.episode_data.get("task_id")
+        task = request.task or request.task_id or request.episode_data.get("task") or request.episode_data.get("task_id") or "easy"
+        if task and task.startswith("task_"):
+            task = task.replace("task_", "")
+            
         action_data = request.episode_data.get("action")
         patient_data = request.episode_data.get("patient")
         trials_data = request.episode_data.get("trials")
         
-        if task is None or action_data is None or patient_data is None or trials_data is None:
+        if not action_data or not patient_data or not trials_data:
             raise HTTPException(status_code=400, detail="Missing required fields")
         
         # Parse models

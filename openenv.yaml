@@ -61,17 +61,17 @@ container:
 grading:
   easy:
     metric: f1_score
-    target: 1.0
+    target: 0.99
     passing: 0.8
   
   medium:
     metric: f1_score
-    target: 1.0
+    target: 0.99
     passing: 0.7
   
   hard:
     metric: ndcg@10
-    target: 1.0
+    target: 0.99
     passing: 0.6
 
 # Environment specifications
